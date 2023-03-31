@@ -1,0 +1,57 @@
+# Tensorflow/Jupyter StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: tensorflow
+spec:
+  selector:
+    matchLabels:
+      pod: tensorflow-pod
+  serviceName: tensorflow
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        pod: tensorflow-pod
+    spec:
+    # DEMO 03 - GPU hardware accelerator
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-tesla-a100
+        cloud.google.com/gke-spot: "true"
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: tensorflow-container
+        image: tensorflow/tensorflow:latest-gpu-jupyter
+        volumeMounts:
+        - name: tensorflow-pvc
+          mountPath: /tf/saved
+        resources:
+            requests:
+              # DEMO 03 - GPU hardware accelerator
+              nvidia.com/gpu: "1"
+              ephemeral-storage: 10Gi
+## Optional: override and set your own token
+#        env:
+#          - name: JUPYTER_TOKEN
+#            value: "jupyter"
+  volumeClaimTemplates:
+  - metadata:
+      name: tensorflow-pvc
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Gi
+---
+# Headless service for the above StatefulSet
+apiVersion: v1
+kind: Service
+metadata:
+  name: tensorflow
+spec:
+  ports:
+  - port: 8888
+  clusterIP: None
+  selector:
+    pod: tensorflow-pod

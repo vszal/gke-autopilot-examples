@@ -1,0 +1,13 @@
+# External service
+apiVersion: "v1"
+kind: "Service"
+metadata:
+  name: tensorflow-jupyter
+spec:
+  ports:
+  - protocol: "TCP"
+    port: 80
+    targetPort: 8888
+  selector:
+    pod: tensorflow-pod
+  type: LoadBalancer

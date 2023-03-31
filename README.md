@@ -75,22 +75,57 @@ kubectl get nodes -o json|jq -Cjr '.items[] | .metadata.name," ",.metadata.label
 `cartservice` workload has now been configured to use Spot Pod resources:
 
 Open the file: <walkthrough-editor-select-regex filePath="demo-02-compute-classes/cartservice.yaml" regex="spot">demo-02-compute-classes/cartservice.yaml"</walkthrough-editor-select-regex>
+
 List nodes looking for spot
 ```bash
 kubectl get nodes -o json|jq -Cjr '.items[] | .metadata.name," ",.metadata.labels."cloud.google.com/gke-spot"," ",.metadata.labels."beta.kubernetes.io/arch", "\n"'|sort -k3 -r
 ``` 
 
-## Demo 03 - Provisioning spare capacity
+## Demo 03 - GPU for AI/ML (TensorFlow)
+
+Let's say our store has some AI/ML models as well. Autopilot supports the provisioning of GPUs like A100 and T4. 
+Open the file: <walkthrough-editor-select-regex filePath="demo-03-GPU/tensorflow.yaml" regex="gpu|accelerator">demo-03-GPU/tensorflow.yaml"</walkthrough-editor-select-regex>
+
+This demo creates a Tensorflow environment with a Jupyter notebook. 
+```bash
+kubectl apply -f demo-03-GPU/
+```
+
+Watch the Tensorflow pod and GPU node spin up:
+```bash
+watch -n 1 kubectl get pods,nodes
+```
+
+Confirm we're using GPU and Spot
+```bash
+kubectl get nodes -o json|jq -Cjr '.items[] | .metadata.name," ",.metadata.labels."cloud.google.com/gke-spot"," ",.metadata.labels."cloud.google.com/gke-accelerator",  "\n"'|sort -k3 -r
+```
+
+### Jupyter AI/ML tutorial
+
+After a few minutes, ingress should be aligned for your Jupyter notebook. Get the ingress IP:
+```bash
+kubectl get svc tensorflow-jupyter -o=jsonpath={.status.loadBalancer.ingress[0].ip}
+```
+
+Refer to William Denniss's [blog post](https://wdenniss.com/tensorflow-on-gke-autopilot-with-gpu-acceleration) detailing the TensorFlow demo.
+
+### Tear down GPU workload
+
+The GPU workload we just created will not be used in the rest of the demos and so you can tear it down now to save costs:
+
+
+## Demo 04 - Provisioning spare capacity
 Since Google manages the nodes, how do you spin up spare capacity for scaling up quickly? HPA will provision spin up new pods but if there is no spare capacity ....
 
 Create balloon priority class
 ```bash 
-kubectl apply -f demo-03-spare-capacity-balloon/balloon-priority.yaml 
+kubectl apply -f demo-04-spare-capacity-balloon/balloon-priority.yaml 
 ```
 
 Create balloon pods
 ```bash 
-kubectl apply -f demo-03-spare-capacity-balloon/balloon-deploy.yaml 
+kubectl apply -f demo-04-spare-capacity-balloon/balloon-deploy.yaml 
 ```
 
 Watch scale up of balloon pods
@@ -104,5 +139,11 @@ kubectl scale --replicas=8 deployment frontend
 ```
 Watch scale up of frontend, displacing the balloon pods. Recreation of low priority balloon pods.
 ```bash
-watch -d kubectl get pods,nodes
+watch -n 1 kubectl get pods,nodes
 ```
+You should see three things happening:
+* The original balloon pods will start terminating immediately because they are low priority, making way for...
+* Frontend scaling up quickly, with most pods up and running in ~30s
+* New balloon pods spinning up more slowly on newly provisioned infrastructure
+
+If we were to scale up again, those new balloon pods wou
