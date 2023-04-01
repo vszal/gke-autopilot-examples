@@ -1,9 +1,41 @@
-# GKE Autopilot examples
+<walkthrough-metadata>
+  <meta name="title" content="GKE Autopilot configuraiton examples" />
+  <meta name="description" content="Guide for helping you get up and running with Google Kubernetes Engine Autopilot mode" />
+  <meta name="component_id" content="103" />
+</walkthrough-metadata>
 
-## What is GKE Autopilot?
+<walkthrough-disable-features toc></walkthrough-disable-features>
+
+# GKE Autopilot configuration examples
+
 GKE Autopilot is cluster mode of operation where GKE manages your cluster control plane, node pools, and worker nodes. This means you don't provision and manage nodes yourself, the way you do it with GKE Standard. How do you specify the attributes of the underlying nodes in this model? At the workload level! This creates a much faster time to value because developers can specify precisely what they need on a per-workload basis without waiting for Platform teams to provision nodes and configure taints.
 
 The demos in this tutorial are aimed at providing you with examples of common use cases, the Autopilot way.
+
+## Select a project
+
+<walkthrough-project-setup billing="true"></walkthrough-project-setup>
+
+Once you've selected a project, click "Start".
+
+## Set the PROJECT_ID environment variable
+
+Set the PROJECT_ID environment variable. This variable will be used in forthcoming steps.
+```bash
+export PROJECT_ID=<walkthrough-project-id/>
+```
+
+### Enable needed APIs and Create Google Cloud Deploy pipeline
+The 
+<walkthrough-editor-open-file filePath="bootstrap/init.sh">bootstrap/init.sh</walkthrough-editor-open-file>
+script enables your APIs and creates a GKE Autopilot cluster for you in a fixed region (us-west1). Please do not change the region as the location demos rely on it.
+
+Run the initialization script:
+```bash
+. ./bootstrap/init.sh
+```
+
+Cluster creation can take a few minutes. Grab a coffee and come back in a few mins.
 
 ## Demo 01 - Deploying the sample app
 Now that your cluster is up and running, let's deploy the sample app, the [Online Boutique microservices demo](https://github.com/GoogleCloudPlatform/microservices-demo). 
@@ -146,4 +178,66 @@ You should see three things happening:
 * Frontend scaling up quickly, with most pods up and running in ~30s
 * New balloon pods spinning up more slowly on newly provisioned infrastructure
 
-If we were to scale up again, those new balloon pods wou
+If we were to scale up again, the latest balloon pods would get displaced and we'd continue buffering headroom this way.
+
+## Demo 05 Workload Separation with Autopilot
+
+For this use case, we want to ensure that both `frontend` and `paymentservice.yaml` workloads run on their own nodes, with no other workloads co-mingled. We'll achieve this by setting node labels using nodeSelector and a corresponding toleration. 
+
+Open the file: <walkthrough-editor-select-regex filePath="demo-05-workload-separation/frontend.yaml" regex="toleration">demo-05-workload-separation/frontend.yaml"</walkthrough-editor-select-regex> and look for the toleration and nodeSelector. In this case, the node label is "frontend-servers".
+
+Scale frontend service to 8 replicas
+```bash
+kubectl scale --replicas=8 deployment frontend
+```
+
+Open the file: <walkthrough-editor-select-regex filePath="demo-05-workload-separation/paymentservice.yaml" regex="toleration">demo-05-workload-separation/paymentservice.yaml"</walkthrough-editor-select-regex> and look for the toleration and nodeSelector. In this case, the node label is "PCI" (say we're trying to isolate these workloads for PCI reasons).
+
+Scale up paymentservice to 2 replicas
+```bash
+kubectl scale --replicas=2 deployment frontend
+```
+
+Notice the current "co-mingled" distribution of workloads on nodes:
+```bash
+kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName
+```
+
+Redeploy the workloads with workload separation
+```bash
+kubectl apply -f demo-05-workload-separation
+```
+
+Watch the separation happen, which may take several minutes:
+```bash
+watch -n 1 kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName
+```
+
+There are more docs on this topic [here](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-separation#separate-workloads-autopilot).
+
+## Demo 06 Single zone
+
+
+
+Now let's say we want to run a certain service in a particular zone. Perhaps we have persistent data there and we want close proximity. 
+
+Open the file: <walkthrough-editor-select-regex filePath="demo-06-single-zone/productcatalogservice.yaml" regex="topology">demo-06-single-zone/productcatalogservice.yaml"</walkthrough-editor-select-regex> and look for the nodeSelector section. In this case, us-west1-b is preset as the zone but you can change this if desired.
+
+```bash
+kubectl get nodes --label-columns failure-domain.beta.kubernetes.io/zone
+```
+You'll see a mix of zones a, b, and possibly others.
+
+Find productcatalogservice and make note of the zone this pod is in.
+```bash
+kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName
+```
+
+Redeploy with the selected zone.
+```bash
+kubectl apply -f demo-06-single-zone/
+```
+
+For a more thorough discussion, see William Denniss's [blog post](https://wdenniss.com/autopilot-specific-zones) on this topic.
+
+## Demo 07 High Availability
