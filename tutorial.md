@@ -46,21 +46,20 @@ watch -d kubectl get pods,nodes
 ```
 
 ### Inspect the nodes
-Let's see the various deployments created
+Inspect the various deployments created
 ```bash
 kubectl get deployments
 ```
 
-Let's see the nodes Autopilot provisioned under the hood
+Inspect the nodes Autopilot provisioned under the hood
 ```bash
 kubectl get nodes
 ```
 
-Let's check the machine type provisioned by default:
+Inspect the machine type provisioned by default:
 ```bash
 kubectl describe nodes |grep node.kubernetes.io/instance-type
 ```
-
 Note that Autopilot defaults to the e2 series machine for each node by default with Autopilot.
 
 ### Test the demo app website via ingress
@@ -78,6 +77,15 @@ Now let's tune our application by specifying [compute classes](https://cloud.goo
 
 *Note: This is a fictional example and I've selected arbitrary compute classes so do not read into my specific choices. The point is show you *how* to select compute classes.*
 
+### Configuration
+In this demo, the `adservice` workload uses the Balanced compute class (currently N2/N2D machine types):
+
+Open the file: <walkthrough-editor-select-regex filePath="demo-02-compute-classes/adservice.yaml" regex="compute-class">demo-02-compute-classes/adservice.yaml"</walkthrough-editor-select-regex> and locate the compute class line.
+
+And the `checkoutservice` workload use the Scale-Out compute class (currently T2/T2D machine types):
+
+Open the file: <walkthrough-editor-select-regex filePath="demo-02-compute-classes/checkoutservice.yaml" regex="compute-class">demo-02-compute-classes/checkoutservice.yaml"</walkthrough-editor-select-regex> and locate the compute class line.
+
 
 ### Deploy machine type manifests
 ```bash
@@ -89,21 +97,13 @@ Watch new nodes spin up:
 watch -d "kubectl get nodes"
 ```
 
-We've set `adservice` workload use the Balanced compute class (N2/N2D machine types):
-
-Open the file: <walkthrough-editor-select-regex filePath="demo-02-compute-classes/adservice.yaml" regex="compute-class">demo-02-compute-classes/adservice.yaml"</walkthrough-editor-select-regex>
-
-`checkoutservice` workload use the Scale-Out compute class (T2/T2D machine types):
-
-Open the file: <walkthrough-editor-select-regex filePath="demo-02-compute-classes/checkoutservice.yaml" regex="compute-class">demo-02-compute-classes/checkoutservice.yaml"</walkthrough-editor-select-regex>
-
-List instance types and architectures
+List node instance types and architectures:
 ```bash
 kubectl get nodes -o json|jq -Cjr '.items[] | .metadata.name," ",.metadata.labels."beta.kubernetes.io/instance-type"," ",.metadata.labels."beta.kubernetes.io/arch", "\n"'|sort -k3 -r
 ```
 
 ### Spot pods
-`cartservice` workload has now been configured to use Spot Pod resources:
+The `cartservice` workload has now been configured to use Spot Pod resources:
 
 Open the file: <walkthrough-editor-select-regex filePath="demo-02-compute-classes/cartservice.yaml" regex="spot">demo-02-compute-classes/cartservice.yaml"</walkthrough-editor-select-regex>
 
@@ -114,8 +114,11 @@ kubectl get nodes -o json|jq -Cjr '.items[] | .metadata.name," ",.metadata.label
 
 ## Demo 03 - GPU for AI/ML (TensorFlow)
 
-Let's say our store has some AI/ML models as well. Autopilot supports the provisioning of GPUs like A100 and T4. 
-Open the file: <walkthrough-editor-select-regex filePath="demo-03-GPU/tensorflow.yaml" regex="gpu|accelerator">demo-03-GPU/tensorflow.yaml"</walkthrough-editor-select-regex>
+Our store has some AI/ML models as well. GKE Autopilot supports the provisioning of hardware accelerators like A100 and T4 GPUs to make machine learning tasks much faster. 
+
+Open the config file: <walkthrough-editor-select-regex filePath="demo-03-GPU/tensorflow.yaml" regex="gpu|accelerator">demo-03-GPU/tensorflow.yaml"</walkthrough-editor-select-regex> and note the GPU configurations.
+
+### Deploy the GPU workload
 
 This demo creates a Tensorflow environment with a Jupyter notebook. 
 ```bash
@@ -144,11 +147,16 @@ Refer to William Denniss's [blog post](https://wdenniss.com/tensorflow-on-gke-au
 ### Tear down GPU workload
 
 The GPU workload we just created will not be used in the rest of the demos and so you can tear it down now to save costs:
-
+```bash
+kubectl delete -f demo-03-GPU/
+```
 
 ## Demo 04 - Provisioning spare capacity
-Since Google manages the nodes, how do you spin up spare capacity for scaling up quickly? HPA will provision spin up new pods but if there is no spare capacity ....
+One common Kubernetes pattern is overprovision node resources for spare capacity. Scaling up manually or via HPA will provision new pods, but if there is no spare capacity this may result in a delay as new hardware gets provisioned. In GKE Standard, you can simply spin extra nodes to act as spare capacity. 
 
+Remember that with Autopilot though, Google manages the nodes. So how do you spin up spare capacity for scaling up quickly with Autopilot mode? The answer is [balloon pods](https://wdenniss.com/gke-autopilot-spare-capacity) (see William Denniss's blog post on this topic details this strategy). 
+
+### Create spare capacity via balloon pods 
 Create balloon priority class
 ```bash 
 kubectl apply -f demo-04-spare-capacity-balloon/balloon-priority.yaml 
@@ -168,21 +176,26 @@ Scale up frontend
 ```bash
 kubectl scale --replicas=8 deployment frontend
 ```
+
 Watch scale up of frontend, displacing the balloon pods. Recreation of low priority balloon pods.
 ```bash
 watch -n 1 kubectl get pods,nodes
 ```
+
 You should see three things happening:
 * The original balloon pods will start terminating immediately because they are low priority, making way for...
 * Frontend scaling up quickly, with most pods up and running in ~30s
-* New balloon pods spinning up more slowly on newly provisioned infrastructure
+* There are also new balloon pods spinning up on newly provisioned infrastructure
 
 If we were to scale up again, the latest balloon pods would get displaced and we'd continue buffering headroom this way.
 
 ## Demo 05 Workload Separation with Autopilot
 
-For this use case, we want to ensure that both `frontend` and `paymentservice.yaml` workloads run on their own nodes, with no other workloads co-mingled. We'll achieve this by setting node labels using nodeSelector and a corresponding toleration. 
+Another common Kubernetes use case is workload separation: running specific services on separate nodes. [Workload separation](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-separation#separate-workloads-autopilot) is achieved on GKE Autopilot using node labels and tolerations.
 
+In this demo, we want to ensure that both `frontend` and `paymentservice.yaml` workloads run on their own nodes, with no other workloads co-mingled. We'll achieve this by setting node labels using nodeSelector and a corresponding toleration. 
+
+### Inspect the configuration and scale services
 Open the file: <walkthrough-editor-select-regex filePath="demo-05-workload-separation/frontend.yaml" regex="toleration">demo-05-workload-separation/frontend.yaml"</walkthrough-editor-select-regex> and look for the toleration and nodeSelector. In this case, the node label is "frontend-servers".
 
 Scale frontend service to 8 replicas
@@ -197,6 +210,7 @@ Scale up paymentservice to 2 replicas
 kubectl scale --replicas=2 deployment frontend
 ```
 
+### Create workload separation
 Notice the current "co-mingled" distribution of workloads on nodes:
 ```bash
 kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName
@@ -212,13 +226,9 @@ Watch the separation happen, which may take several minutes:
 watch -n 1 kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName
 ```
 
-There are more docs on this topic [here](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-separation#separate-workloads-autopilot).
-
 ## Demo 06 Single zone
 
-
-
-Now let's say we want to run a certain service in a particular zone. Perhaps we have persistent data there and we want close proximity. 
+Sometimes you want to run a service in a specific availability zone. Perhaps we have persistent data there and we want close proximity. 
 
 Open the file: <walkthrough-editor-select-regex filePath="demo-06-single-zone/productcatalogservice.yaml" regex="topology">demo-06-single-zone/productcatalogservice.yaml"</walkthrough-editor-select-regex> and look for the nodeSelector section. In this case, us-west1-b is preset as the zone but you can change this if desired.
 
