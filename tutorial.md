@@ -14,7 +14,7 @@
 
 Once you've selected a project, click "Start".
 
-### Create a cluster
+## Create a cluster
 
 Run this script to enable the GKE API and create a GKE Autopilot cluster named "AP-demo-cluster":
 ```bash
