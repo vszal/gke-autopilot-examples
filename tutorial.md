@@ -14,13 +14,6 @@
 
 Once you've selected a project, click "Start".
 
-## Set the PROJECT_ID environment variable
-
-Set the PROJECT_ID environment variable. This variable will be used in forthcoming steps.
-```bash
-export PROJECT_ID=<walkthrough-project-id/>
-```
-
 ### Create a cluster
 
 Run this script to enable the GKE API and create a GKE Autopilot cluster named "AP-demo-cluster":
@@ -249,4 +242,9 @@ kubectl apply -f demo-06-single-zone/
 
 For a more thorough discussion, see William Denniss's [blog post](https://wdenniss.com/autopilot-specific-zones) on this topic.
 
-## Demo 07 High Availability
+## Teardown
+That's it! You've made it through all the demos. You can now remove the GKE Autopilot cluster used in this demo as follows:
+
+```bash
+. ./teardown.sh
+```
