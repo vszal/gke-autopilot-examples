@@ -5,5 +5,5 @@ if [[ -z "${PROJECT_ID}" ]]; then
   return
 fi
 # Removing the cluster
-echo "Deleting AP-demo-cluster..."
-gcloud container clusters delete AP-demo-cluster --project "$PROJECT_ID" --region "us-west1" --async
+echo "Deleting ap-demo-cluster..."
+gcloud container clusters delete ap-demo-cluster --project "$PROJECT_ID" --region "us-west1" --async

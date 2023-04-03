@@ -9,8 +9,8 @@ export PROJECT_ID=$(gcloud config get-value project)
 # Enables the GKE API
 gcloud services enable container.googleapis.com 
 # Create demo cluster
-echo "creating AP-demo-cluster..."
-gcloud container --project "$PROJECT_ID" clusters create-auto "AP-demo-cluster" \
+echo "creating ap-demo-cluster..."
+gcloud container --project "$PROJECT_ID" clusters create-auto "ap-demo-cluster" \
 --region "us-west1" --release-channel "regular"
 
 echo "All done, proceed to the next step - demos!"

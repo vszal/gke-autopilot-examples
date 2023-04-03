@@ -26,7 +26,7 @@ gcloud config set project <walkthrough-project-name/>
 
 ## Create a cluster
 
-Run this script to enable the GKE API and create a GKE Autopilot cluster named "AP-demo-cluster":
+Run this script to enable the GKE API and create a GKE Autopilot cluster named "ap-demo-cluster":
 ```bash
 . ./bootstrap/init.sh
 ```
