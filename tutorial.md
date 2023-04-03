@@ -12,7 +12,10 @@
 
 <walkthrough-project-setup billing="true"></walkthrough-project-setup>
 
-Once you've selected a project, click "Start".
+## Enable API for Kubernetes Engine
+<walkthrough-enable-apis apis="container.googleapis.com"></walkthrough-enable-apis>
+
+You're done, click "Start".
 
 ## Create a cluster
 
