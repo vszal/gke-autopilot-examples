@@ -47,15 +47,11 @@ watch -d kubectl get pods,nodes
 
 ### Inspect the nodes
 
-Inspect the nodes Autopilot provisioned under the hood
-```bash
-kubectl get nodes
-```
-
-Get the machine type provisioned by default:
+Inspect the nodes Autopilot provisioned under the hood. Get the machine type provisioned by default:
 ```bash
 kubectl get nodes -o json|jq -Cjr '.items[] | .metadata.name," ",.metadata.labels."beta.kubernetes.io/instance-type"," ",.metadata.labels."beta.kubernetes.io/arch", "\n"'|sort -k3 -r
 ```
+
 Note that Autopilot defaults to the e2 series machine for each node by default with Autopilot.
 
 ### Test the demo app website via ingress
@@ -87,14 +83,14 @@ Open the file: <walkthrough-editor-select-regex filePath="demo-02-compute-classe
 kubectl apply -f demo-02-compute-classes/
 ```
 
-Watch new nodes spin up:
+Watch new nodes spin up (may take a few minutes):
 ```bash
-watch -d "kubectl get nodes"
+watch -n 1 kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName
 ```
 
-List node instance types and architectures:
+List node machine types and architectures:
 ```bash
-kubectl get nodes -o json|jq -Cjr '.items[] | .metadata.name," ",.metadata.labels."beta.kubernetes.io/instance-type"," ",.metadata.labels."beta.kubernetes.io/arch", "\n"'|sort -k3 -r
+kubectl get nodes -o json|jq -Cjr '.items[] | .metadata.name," ",.metadata.labels."beta.kubernetes.io/instance-type"," ",.metadata.labels."beta.kubernetes.io/arch", "\n"'|sort -k2 -r
 ```
 
 ### Spot pods
@@ -104,7 +100,7 @@ Open the file: <walkthrough-editor-select-regex filePath="demo-02-compute-classe
 
 List nodes looking for spot
 ```bash
-kubectl get nodes -o json|jq -Cjr '.items[] | .metadata.name," ",.metadata.labels."cloud.google.com/gke-spot"," ",.metadata.labels."beta.kubernetes.io/arch", "\n"'|sort -k3 -r
+kubectl get nodes -o json|jq -Cjr '.items[] | .metadata.name," ",.metadata.labels."cloud.google.com/gke-spot"," ",.metadata.labels."beta.kubernetes.io/arch", "\n"'|sort -k2 -r
 ``` 
 
 ## Demo 03 - GPU for AI/ML (TensorFlow)
@@ -152,10 +148,15 @@ One common Kubernetes pattern is overprovision node resources for spare capacity
 Remember that with Autopilot though, Google manages the nodes. So how do you spin up spare capacity for scaling up quickly with Autopilot mode? The answer is [balloon pods](https://wdenniss.com/gke-autopilot-spare-capacity) (see William Denniss's blog post on this topic details this strategy). 
 
 ### Create spare capacity via balloon pods 
+
+Open the priority class file: <walkthrough-editor-select-regex filePath="demo-04-spare-capacity-balloon/balloon-priority.yaml" regex="priority">demo-04-spare-capacity-balloon/balloon-priority.yaml</walkthrough-editor-select-regex>.
+
 Create balloon priority class
 ```bash 
 kubectl apply -f demo-04-spare-capacity-balloon/balloon-priority.yaml 
 ```
+
+Open the balloon deployment file: <walkthrough-editor-select-regex filePath="demo-04-spare-capacity-balloon/balloon-deploy.yaml " regex="priority">demo-04-spare-capacity-balloon/balloon-deploy.yaml </walkthrough-editor-select-regex>.
 
 Create balloon pods
 ```bash 
@@ -167,7 +168,10 @@ Watch scale up of balloon pods
 watch -d kubectl get pods,nodes
 ```
 ### Scale up by displaying balloon pods
-Scale up frontend
+
+Now let's simulate a scaling event where the `frontend` service goes from 1 to 8 replicas. Then watch as the balloon pods yield to the `frontend` pods for rapid scale up.
+
+Scale up frontend:
 ```bash
 kubectl scale --replicas=8 deployment frontend
 ```
@@ -202,7 +206,7 @@ Open the file: <walkthrough-editor-select-regex filePath="demo-05-workload-separ
 
 Scale up paymentservice to 2 replicas
 ```bash
-kubectl scale --replicas=2 deployment frontend
+kubectl scale --replicas=2 deployment paymentservice
 ```
 
 ### Create workload separation
@@ -230,9 +234,10 @@ Open the file: <walkthrough-editor-select-regex filePath="demo-06-single-zone/pr
 ```bash
 kubectl get nodes --label-columns failure-domain.beta.kubernetes.io/zone
 ```
+
 You'll see a mix of zones a, b, and possibly others.
 
-Find productcatalogservice and make note of the zone this pod is in.
+Find `productcatalogservice` and make note of the zone this pod is in by referencing the 
 ```bash
 kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName
 ```
@@ -240,6 +245,16 @@ kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:
 Redeploy with the selected zone.
 ```bash
 kubectl apply -f demo-06-single-zone/
+```
+
+Watch the pod move to another node (make note of the node name):
+```bash
+watch -n 1 kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName
+```
+
+Confirm the pod landed on a pod in zone b:
+```bash
+kubectl get nodes --label-columns failure-domain.beta.kubernetes.io/zone
 ```
 
 For a more thorough discussion, see William Denniss's [blog post](https://wdenniss.com/autopilot-specific-zones) on this topic.
