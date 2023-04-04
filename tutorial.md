@@ -20,10 +20,6 @@ Click "Start" when you are done.
 gcloud config set project <walkthrough-project-name/>
 ```
 
-### Enable API for Kubernetes Engine
-<walkthrough-enable-apis apis="container.googleapis.com"></walkthrough-enable-apis>
-
-
 ## Create a cluster
 
 Run this script to enable the GKE API and create a GKE Autopilot cluster named "ap-demo-cluster":
@@ -36,8 +32,7 @@ Cluster creation can take a few minutes. Grab a coffee and come back in a few mi
 ## Demo 01 - Deploying the sample app
 Now that your cluster is up and running, the first step is deploying the sample app, the [Online Boutique microservices demo](https://github.com/GoogleCloudPlatform/microservices-demo). This is a microservices demo with several services, spanning various language platforms. Check out the  manifests in `demo-01-deploy-sample-app`.
 
-
-Deploy the app services:
+### Deploy the app services:
 ```bash
 kubectl apply -f demo-01-deploy-sample-app/
 ```
@@ -75,7 +70,7 @@ echo http://$(kubectl get svc frontend-external -o=jsonpath={.status.loadBalance
 
 Now let's tune our application by specifying [compute classes](https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-compute-classes) for our workloads. [Compute classes](https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-compute-classes#when-to-use) allow us to customize hardware requirements and over a curated subset of Compute Engine machine series.
 
-*Note: This is a fictional example and I've selected arbitrary compute classes so do not read into my specific choices. The point is show you *how* to select compute classes.*
+*Note: This is a fictional example with arbitrary compute classes so do not read into my specific choices. The point is show you *how* to select compute classes.*
 
 ### Configuration
 In this demo, the `adservice` workload uses the Balanced compute class (currently N2/N2D machine types):
