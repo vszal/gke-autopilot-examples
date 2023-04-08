@@ -17,8 +17,8 @@ spec:
     # DEMO 03 - GPU hardware accelerator
       nodeSelector:
         cloud.google.com/gke-accelerator: nvidia-tesla-a100
-        cloud.google.com/gke-spot: "true"
-      terminationGracePeriodSeconds: 30
+        #cloud.google.com/gke-spot: "true"
+      #terminationGracePeriodSeconds: 30
       containers:
       - name: tensorflow-container
         image: tensorflow/tensorflow:latest-gpu-jupyter
