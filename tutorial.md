@@ -66,7 +66,7 @@ echo http://$(kubectl get svc frontend-external -o=jsonpath={.status.loadBalance
 
 Now let's tune our application by specifying [compute classes](https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-compute-classes) for our workloads. [Compute classes](https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-compute-classes#when-to-use) allow us to customize hardware requirements and over a curated subset of Compute Engine machine series.
 
-*Note: This is a fictional example with arbitrary compute classes so do not read into my specific choices. The point is show you *how* to select compute classes.*
+*Note: This is a fictional example with arbitrary compute classes so do not read into specific class choices. The point is show you *how* to select compute classes.*
 
 ### Configuration
 In this demo, the `adservice` workload uses the Balanced compute class (currently N2/N2D machine types):
@@ -121,7 +121,7 @@ Watch the Tensorflow pod and GPU node spin up:
 watch -n 1 kubectl get pods,nodes
 ```
 
-Confirm we're using GPU and Spot
+Confirm we're using GPU (and spot, if selected)
 ```bash
 kubectl get nodes -o json|jq -Cjr '.items[] | .metadata.name," ",.metadata.labels."cloud.google.com/gke-spot"," ",.metadata.labels."cloud.google.com/gke-accelerator",  "\n"'|sort -k3 -r
 ```
@@ -237,7 +237,7 @@ kubectl get nodes --label-columns failure-domain.beta.kubernetes.io/zone
 
 You'll see a mix of zones a, b, and possibly others.
 
-Find `productcatalogservice` and make note of the zone this pod is in by referencing the 
+Find `productcatalogservice` and make note of the zone this pod is in by referencing the previous command's output.
 ```bash
 kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.phase,NODE:.spec.nodeName
 ```
