@@ -232,7 +232,7 @@ Sometimes you want to run a service in a specific availability zone. Perhaps we 
 Open the file: <walkthrough-editor-select-regex filePath="demo-06-single-zone/productcatalogservice.yaml" regex="topology">demo-06-single-zone/productcatalogservice.yaml</walkthrough-editor-select-regex> and look for the nodeSelector section. In this case, us-west1-b is preset as the zone but you can change this if desired.
 
 ```bash
-kubectl get nodes --label-columns failure-domain.beta.kubernetes.io/zone
+kubectl get nodes --label-columns topology.kubernetes.io/zone
 ```
 
 You'll see a mix of zones a, b, and possibly others.
@@ -254,7 +254,7 @@ watch -n 1 kubectl get pod -o=custom-columns=NAME:.metadata.name,STATUS:.status.
 
 Confirm the pod landed on a pod in zone b:
 ```bash
-kubectl get nodes --label-columns failure-domain.beta.kubernetes.io/zone
+kubectl get nodes --label-columns kubectl get nodes --label-columns topology.kubernetes.io/zone
 ```
 
 For a more thorough discussion, see William Denniss's [blog post](https://wdenniss.com/autopilot-specific-zones) on this topic.
