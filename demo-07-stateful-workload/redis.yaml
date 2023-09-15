@@ -16,13 +16,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis-cart
-  labels:
-    app: redis-cart
 spec:
   selector:
     matchLabels:
       app: redis-cart
-  replicas: 3
   template:
     metadata:
       labels:
@@ -78,8 +75,11 @@ spec:
         - mountPath: /data
           name: redis-data
         resources:
+          limits:
+            memory: 256Mi
+            cpu: 125m
           requests:
-            cpu: 500m
+            cpu: 70m
             memory: 200Mi
       volumes:
       - name: redis-data
