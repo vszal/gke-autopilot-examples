@@ -44,7 +44,7 @@ spec:
               - ALL
           privileged: false
           readOnlyRootFilesystem: true
-        image: gcr.io/google-samples/microservices-demo/adservice:v0.4.1
+        image: gcr.io/google-samples/microservices-demo/adservice:v0.8.0
         ports:
         - containerPort: 9555
         env:
